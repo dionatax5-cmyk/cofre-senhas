@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1e3a8a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cofre">
+<title>Cofre de Senhas</title>
+<style>
+:root{
+  --bg:#eef2f8;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;
+  --input:#f8fafc;--pri:#1d4ed8;--pri-2:#1e3a8a;--pri-ink:#fff;--danger:#dc2626;
+  --ok:#16a34a;--warn:#d97706;--shadow:0 6px 24px rgba(15,23,42,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#0b1120;--card:#131c2e;--text:#e5e9f2;--muted:#8b98ad;--line:#243049;
+  --input:#0f1727;--pri:#3b82f6;--pri-2:#1e3a8a;--shadow:0 6px 24px rgba(0,0,0,.35);}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.hidden{display:none!important}
+.muted{color:var(--muted)}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.02em}
+button{font:inherit;color:inherit;cursor:pointer}
+input,textarea,select{font:inherit;color:var(--text);background:var(--input);border:1px solid var(--line);
+  border-radius:12px;padding:12px 14px;width:100%;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--pri)}
+label{display:block;font-size:.85rem;color:var(--muted);margin:14px 0 6px}
+label>input,label>textarea,label>.row{margin-top:6px}
+.btn{border:0;border-radius:12px;padding:13px 16px;font-weight:600;background:var(--input);
+  border:1px solid var(--line);width:100%}
+.btn.primary{background:var(--pri);color:var(--pri-ink);border-color:var(--pri)}
+.btn.danger{background:transparent;color:var(--danger);border-color:var(--danger)}
+.btn:disabled{opacity:.6}
+.link{background:none;border:0;color:var(--pri);padding:10px;font-weight:600}
+.icon{border:1px solid var(--line);background:var(--input);border-radius:12px;width:46px;min-width:46px;height:46px;
+  display:inline-flex;align-items:center;justify-content:center;padding:0}
+.icon svg{width:20px;height:20px}
+.row{display:flex;gap:8px;align-items:center}
+.err{color:var(--danger);min-height:1.2em;font-size:.9rem;margin:8px 0 0}
+
+/* Tela de bloqueio */
+#lock{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px 16px;
+  background:linear-gradient(160deg,var(--pri-2),#0f172a)}
+.lockbox{background:var(--card);border-radius:22px;padding:28px 20px;width:100%;max-width:400px;box-shadow:var(--shadow);text-align:center}
+.lockbox h1{margin:10px 0 4px;font-size:1.4rem}
+.lockbox form{text-align:left;margin-top:16px;display:grid;gap:10px}
+.logo{width:64px;height:64px;border-radius:18px;margin:0 auto;background:var(--pri);display:flex;align-items:center;justify-content:center}
+.logo svg{width:34px;height:34px;color:#fff}
+.note{font-size:.82rem;background:var(--input);border:1px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;color:var(--muted)}
+#restoreBox{text-align:left;margin-top:12px;display:grid;gap:10px}
+
+/* App */
+header{position:sticky;top:0;z-index:5;background:var(--pri-2);color:#fff;
+  padding:calc(env(safe-area-inset-top) + 12px) 16px 12px}
+.hbar{display:flex;align-items:center;gap:8px}
+.hbar h1{font-size:1.15rem;margin:0;flex:1}
+.hbtn{background:rgba(255,255,255,.12);border:0;border-radius:12px;width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center;color:#fff}
+.hbtn svg{width:20px;height:20px}
+.pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border:0;color:#fff;
+  border-radius:999px;padding:6px 12px;font-size:.78rem;margin-top:10px}
+.dot{width:8px;height:8px;border-radius:50%;background:#94a3b8}
+.pill[data-s=ok] .dot{background:#4ade80}.pill[data-s=sync] .dot{background:#60a5fa}
+.pill[data-s=warn] .dot{background:#fbbf24}.pill[data-s=err] .dot{background:#f87171}
+.search{padding:12px 16px 4px;max-width:720px;margin:0 auto}
+.search input{background:var(--card)}
+main{padding:8px 16px 120px;max-width:720px;margin:0 auto}
+.count{font-size:.8rem;color:var(--muted);margin:6px 2px 10px}
+.item{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);
+  border-radius:16px;padding:12px;margin-bottom:10px;box-shadow:var(--shadow)}
+.av{width:42px;min-width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-weight:700;color:#fff;background:hsl(var(--h) 60% 45%)}
+.meta{flex:1;min-width:0}
+.nm{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg{font-size:.85rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pwv{font-size:.88rem;margin-top:2px;word-break:break-all}
+.acts{display:flex;gap:6px}
+.empty{text-align:center;color:var(--muted);padding:48px 16px}
+.fab{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 18px);border:0;border-radius:16px;
+  background:var(--pri);color:#fff;font-weight:700;padding:16px 20px;box-shadow:0 10px 30px rgba(29,78,216,.45);z-index:6}
+
+/* Painéis */
+.overlay{position:fixed;inset:0;background:rgba(2,6,23,.55);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--card);width:100%;max-width:560px;max-height:92dvh;overflow:auto;border-radius:22px 22px 0 0;
+  padding:16px 16px calc(env(safe-area-inset-bottom) + 20px)}
+@media (min-width:640px){.overlay{align-items:center}.sheet{border-radius:22px}}
+.sh-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sh-head h2{margin:0;font-size:1.15rem}
+.sh-actions{display:flex;gap:10px;margin-top:20px}
+.meter{height:6px;background:var(--line);border-radius:6px;margin-top:10px;overflow:hidden}
+.meter span{display:block;height:100%;width:0;border-radius:6px;transition:width .25s,background .25s}
+.mtxt{font-size:.8rem;color:var(--muted);margin-top:4px}
+details{border:1px solid var(--line);border-radius:14px;padding:4px 14px;margin-top:14px;background:var(--input)}
+summary{padding:10px 0;font-weight:600;cursor:pointer}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;padding-bottom:12px}
+.chk{display:flex;align-items:center;gap:8px;margin:0;color:var(--text);font-size:.92rem}
+.chk input{width:20px;height:20px;padding:0;accent-color:var(--pri)}
+.len{grid-column:1/-1;display:flex;align-items:center;gap:12px}
+.len input{padding:0;accent-color:var(--pri);background:none;border:0}
+.len b{min-width:28px;text-align:right}
+.sec{border-top:1px solid var(--line);margin-top:18px;padding-top:6px}
+.sec h3{font-size:.95rem;margin:12px 0 4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.help{font-size:.85rem;color:var(--muted)}
+.help ol{padding-left:18px;margin:6px 0 12px}
+.help code{background:var(--card);border:1px solid var(--line);padding:1px 5px;border-radius:6px;word-break:break-all}
+.hist{font-size:.85rem;padding-bottom:10px}
+.hist div{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
+#ask{z-index:40}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 90px);transform:translateX(-50%) translateY(20px);
+  background:#0f172a;color:#fff;padding:10px 16px;border-radius:12px;font-size:.9rem;opacity:0;pointer-events:none;
+  transition:.25s;z-index:50;max-width:calc(100% - 32px);text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%)}
+#toast.bad{background:var(--danger)}
+</style>
+</head>
+<body>
+
+<!-- ===== Tela de bloqueio / criação ===== -->
+<section id="lock">
+  <div class="lockbox">
+    <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+    <h1>Cofre de Senhas</h1>
+    <p id="lockMsg" class="muted" style="margin:0"></p>
+    <form id="lockForm" autocomplete="off">
+      <input type="password" id="mp1" placeholder="Senha mestra" autocomplete="current-password">
+      <input type="password" id="mp2" placeholder="Confirme a senha mestra" class="hidden" autocomplete="new-password">
+      <div id="setupNote" class="note hidden">Guarde bem a senha mestra: ela protege todas as outras e <b>não pode ser recuperada</b>. Use no mínimo 8 caracteres.</div>
+      <button class="btn primary" id="lockBtn" type="submit">Desbloquear</button>
+      <p class="err" id="lockErr"></p>
+    </form>
+    <button class="link" id="restoreLink" type="button">Já tenho um cofre — restaurar</button>
+    <div id="restoreBox" class="hidden">
+      <label style="margin:0">Client ID do Google (para restaurar do Drive)
+        <input id="rCid" placeholder="xxxx.apps.googleusercontent.com" autocapitalize="off">
+      </label>
+      <button class="btn" id="rDrive" type="button">Restaurar do Google Drive</button>
+      <button class="btn" id="rFile" type="button">Importar arquivo de backup</button>
+      <p class="err" id="rErr"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== App ===== -->
+<section id="app" class="hidden">
+  <header>
+    <div class="hbar">
+      <h1>Cofre de Senhas</h1>
+      <button class="hbtn" id="setBtn" aria-label="Configurações"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+      <button class="hbtn" id="lockNow" aria-label="Bloquear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button>
+    </div>
+    <button class="pill" id="syncPill" data-s="off"><span class="dot"></span><span id="syncTxt">Salvo só neste aparelho</span></button>
+  </header>
+  <div class="search"><input id="q" type="search" placeholder="Buscar site ou usuário…" autocomplete="off"></div>
+  <main>
+    <div class="count" id="count"></div>
+    <div id="list"></div>
+  </main>
+  <button class="fab" id="addBtn">+ Nova senha</button>
+</section>
+
+<div id="sheet" class="overlay hidden"><div class="sheet" id="sheetBody"></div></div>
+
+<div id="ask" class="overlay hidden">
+  <div class="sheet">
+    <div class="sh-head"><h2>Senha mestra</h2></div>
+    <p id="askMsg" class="muted"></p>
+    <input type="password" id="askPw" placeholder="Senha mestra">
+    <div class="sh-actions"><button class="btn" id="askCancel">Cancelar</button><button class="btn primary" id="askOk">Confirmar</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ================= Utilidades ================= */
+const $ = s => document.querySelector(s);
+const enc = new TextEncoder(), dec = new TextDecoder();
+const VK = 'cofreSenhas.vault.v1', CK = 'cofreSenhas.cfg.v1';
+const ITER = 310000, FNAME = 'cofre-senhas.json';
+const ICON = {
+  eye:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  regen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>'
+};
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function toB64(u8){let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s);}
+function fromB64(s){const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
+function uid(){if(crypto.randomUUID)return crypto.randomUUID();const a=crypto.getRandomValues(new Uint8Array(16));return [...a].map(x=>x.toString(16).padStart(2,'0')).join('');}
+function hhmm(t){const d=new Date(t);return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
+function hue(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h;}
+let toastT;
+function toast(msg,bad){const t=$('#toast');t.textContent=msg;t.className='show'+(bad?' bad':'');clearTimeout(toastT);toastT=setTimeout(()=>t.className='',bad?4500:2200);}
+function lsGet(k){try{return localStorage.getItem(k);}catch{return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);return true;}catch{toast('Não foi possível salvar no aparelho (armazenamento bloqueado ou cheio)',true);return false;}}
+function lsDel(k){try{localStorage.removeItem(k);}catch{}}
+
+/* ================= Configurações ================= */
+const cfg = Object.assign({clientId:'',autoSync:true,driveConnected:false,lastSync:0,lockMin:5,
+  gen:{len:20,upper:true,lower:true,digits:true,symbols:true,noAmb:true}}, (()=>{try{return JSON.parse(lsGet(CK))||{};}catch{return {};}})());
+function saveCfg(){lsSet(CK,JSON.stringify(cfg));}
+
+/* ================= Criptografia ================= */
+async function deriveKey(pw,salt,iter=ITER){
+  const base=await crypto.subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function encryptObj(obj,key,salt,iter){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(obj)));
+  return {app:'cofre-senhas',v:1,iter,salt:toB64(salt),iv:toB64(iv),ct:toB64(new Uint8Array(ct)),savedAt:Date.now()};
+}
+async function decryptBlob(blob,key){
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(blob.iv)},key,fromB64(blob.ct));
+  return JSON.parse(dec.decode(pt));
+}
+const isBlob=b=>b&&b.app==='cofre-senhas'&&b.ct&&b.iv&&b.salt;
+
+/* ================= Estado ================= */
+const S={key:null,salt:null,iter:ITER,vault:null};
+async function saveLocal(){
+  S.vault.updatedAt=Date.now();
+  const blob=await encryptObj(S.vault,S.key,S.salt,S.iter);
+  return lsSet(VK,JSON.stringify(blob));
+}
+async function persist(){if(await saveLocal()&&cfg.driveConnected&&cfg.autoSync)scheduleSync();}
+function live(){return S.vault.entries.filter(e=>!e.deleted);}
+function merge(a,b){const m=new Map();for(const e of [...a,...b]){const c=m.get(e.id);if(!c||(e.updatedAt||0)>(c.updatedAt||0))m.set(e.id,e);}return [...m.values()];}
+function purge(list){const lim=Date.now()-90*864e5;return list.filter(e=>!(e.deleted&&e.updatedAt<lim));}
+
+/* ================= Gerador ================= */
+function randInt(n){const lim=Math.floor(0x100000000/n)*n,a=new Uint32Array(1);let x;do{crypto.getRandomValues(a);x=a[0];}while(x>=lim);return x%n;}
+function generate(o){
+  let sets=[];
+  if(o.upper)sets.push('ABCDEFGHIJKLMNOPQRSTUVWXYZ');
+  if(o.lower)sets.push('abcdefghijklmnopqrstuvwxyz');
+  if(o.digits)sets.push('0123456789');
+  if(o.symbols)sets.push('!@#$%&*?-_=+.:;');
+  if(!sets.length)sets=['abcdefghijklmnopqrstuvwxyz'];
+  if(o.noAmb)sets=sets.map(s=>s.replace(/[Il1O0o]/g,''));
+  const all=sets.join(''),out=sets.map(s=>s[randInt(s.length)]);
+  while(out.length<o.len)out.push(all[randInt(all.length)]);
+  for(let i=out.length-1;i>0;i--){const j=randInt(i+1);[out[i],out[j]]=[out[j],out[i]];}
+  return out.join('');
+}
+function strength(pw){
+  let n=0;if(/[a-z]/.test(pw))n+=26;if(/[A-Z]/.test(pw))n+=26;if(/\d/.test(pw))n+=10;if(/[^a-zA-Z0-9]/.test(pw))n+=20;
+  const bits=pw.length&&n?Math.round(pw.length*Math.log2(n)):0;
+  const lv=bits<40?['Fraca','#dc2626',25]:bits<60?['Razoável','#d97706',50]:bits<80?['Forte','#16a34a',75]:['Muito forte','#15803d',100];
+  return {bits,label:lv[0],color:lv[1],pct:lv[2]};
+}
+
+/* ================= Área de transferência ================= */
+let clipT;
+async function copyText(t,label){
+  try{await navigator.clipboard.writeText(t);}
+  catch{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch{}ta.remove();}
+  toast(label+' copiado');
+  clearTimeout(clipT);clipT=setTimeout(()=>{try{navigator.clipboard.writeText('').catch(()=>{});}catch{}},30000);
+}
+
+/* ================= Bloqueio ================= */
+let setupMode=false;
+function showLock(msg){
+  closeSheet();
+  setupMode=!lsGet(VK);
+  $('#app').classList.add('hidden');$('#lock').classList.remove('hidden');
+  $('#mp1').value='';$('#mp2').value='';$('#lockErr').textContent='';
+  $('#mp2').classList.toggle('hidden',!setupMode);
+  $('#setupNote').classList.toggle('hidden',!setupMode);
+  $('#lockBtn').textContent=setupMode?'Criar cofre':'Desbloquear';
+  $('#mp1').placeholder=setupMode?'Crie uma senha mestra':'Senha mestra';
+  $('#lockMsg').textContent=msg||(setupMode?'Primeiro acesso: crie a senha mestra do seu cofre.':'Digite a senha mestra para abrir.');
+  $('#restoreLink').classList.toggle('hidden',!setupMode);
+  $('#restoreBox').classList.add('hidden');
+  $('#rCid').value=cfg.clientId||'';
+}
+function lock(){S.key=null;S.vault=null;S.salt=null;$('#list').innerHTML='';$('#q').value='';showLock();}
+
+$('#lockForm').addEventListener('submit',async ev=>{
+  ev.preventDefault();
+  const p1=$('#mp1').value,p2=$('#mp2').value,err=$('#lockErr'),btn=$('#lockBtn');
+  err.textContent='';
+  if(setupMode){
+    if(p1.length<8)return err.textContent='A senha mestra precisa ter pelo menos 8 caracteres.';
+    if(p1!==p2)return err.textContent='As senhas não conferem.';
+  }else if(!p1)return;
+  btn.disabled=true;const old=btn.textContent;btn.textContent='Abrindo…';
+  try{
+    if(setupMode){
+      S.salt=crypto.getRandomValues(new Uint8Array(16));S.iter=ITER;
+      S.key=await deriveKey(p1,S.salt,S.iter);
+      S.vault={entries:[],updatedAt:Date.now()};
+      await saveLocal();
+    }else{
+      const blob=JSON.parse(lsGet(VK));
+      S.salt=fromB64(blob.salt);S.iter=blob.iter||ITER;
+      const key=await deriveKey(p1,S.salt,S.iter);
+      try{S.vault=await decryptBlob(blob,key);}catch{throw new Error('Senha mestra incorreta.');}
+      S.vault.entries=S.vault.entries||[];S.key=key;
+    }
+    openApp();
+  }catch(e){err.textContent=e.message||'Erro ao abrir o cofre.';S.key=null;}
+  finally{btn.disabled=false;btn.textContent=old;}
+});
+
+$('#restoreLink').onclick=()=>{$('#restoreBox').classList.toggle('hidden');if(cfg.clientId)loadGis().catch(()=>{});};
+$('#rCid').addEventListener('change',()=>{cfg.clientId=$('#rCid').value.trim();saveCfg();if(cfg.clientId)loadGis().catch(()=>{});});
+$('#rDrive').onclick=async()=>{
+  const e=$('#rErr');e.textContent='';
+  cfg.clientId=$('#rCid').value.trim();saveCfg();
+  if(!cfg.clientId)return e.textContent='Informe o Client ID do Google.';
+  try{
+    const f=await driveFind();
+    if(!f)throw new Error('Nenhum cofre encontrado nesta conta do Google.');
+    const blob=await driveDownload(f.id);
+    if(!isBlob(blob))throw new Error('O arquivo da nuvem não é um cofre válido.');
+    lsSet(VK,JSON.stringify(blob));cfg.driveConnected=true;cfg.autoSync=true;saveCfg();
+    showLock('Cofre restaurado da nuvem. Digite a senha mestra dele.');
+  }catch(x){e.textContent=x.message;}
+};
+$('#rFile').onclick=async()=>{
+  const e=$('#rErr');e.textContent='';
+  const b=await pickFile();if(b===null)return;
+  if(!isBlob(b))return e.textContent='Arquivo de backup inválido.';
+  lsSet(VK,JSON.stringify(b));showLock('Backup importado. Digite a senha mestra dele.');
+};
+
+/* Bloqueio automático */
+let lastAct=Date.now(),hiddenAt=0;
+['pointerdown','keydown','scroll','input'].forEach(ev=>addEventListener(ev,()=>lastAct=Date.now(),{passive:true,capture:true}));
+setInterval(()=>{if(S.key&&Date.now()-lastAct>cfg.lockMin*60000)lock();},10000);
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)hiddenAt=Date.now();
+  else if(S.key&&hiddenAt&&Date.now()-hiddenAt>cfg.lockMin*60000)lock();
+});
+
+/* ================= Lista ================= */
+function openApp(){
+  $('#lock').classList.add('hidden');$('#app').classList.remove('hidden');
+  lastAct=Date.now();render();
+  if(cfg.driveConnected){if(tokenValid())syncNow(false);else setSync('warn','Toque para sincronizar com o Drive');}
+  else setSync('off','Salvo só neste aparelho');
+  try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch{}
+}
+function render(){
+  if(!S.vault)return;
+  const q=$('#q').value.trim().toLowerCase();
+  const all=live();
+  const items=all.filter(e=>!q||e.name.toLowerCase().includes(q)||(e.login||'').toLowerCase().includes(q))
+    .sort((a,b)=>a.name.localeCompare(b.name,'pt-BR',{sensitivity:'base'}));
+  $('#count').textContent=all.length?(q?`${items.length} de ${all.length} senhas`:`${all.length} senha${all.length>1?'s':''} salva${all.length>1?'s':''}`):'';
+  if(!all.length){$('#list').innerHTML='<div class="empty">Nenhuma senha ainda.<br>Toque em <b>+ Nova senha</b>, informe o nome do site e uma senha segura será gerada.</div>';return;}
+  if(!items.length){$('#list').innerHTML='<div class="empty">Nada encontrado.</div>';return;}
+  $('#list').innerHTML=items.map(e=>`
+    <article class="item" data-id="${esc(e.id)}">
+      <div class="av" style="--h:${hue(e.name)}">${esc((e.name.trim()[0]||'?').toUpperCase())}</div>
+      <div class="meta">
+        <div class="nm">${esc(e.name)}</div>
+        <div class="lg">${esc(e.login||'—')}</div>
+        <div class="pwv mono">••••••••••</div>
+      </div>
+      <div class="acts">
+        <button class="icon" data-a="show" aria-label="Mostrar senha">${ICON.eye}</button>
+        <button class="icon" data-a="copy" aria-label="Copiar senha">${ICON.copy}</button>
+      </div>
+    </article>`).join('');
+}
+$('#q').addEventListener('input',render);
+$('#list').addEventListener('click',ev=>{
+  const art=ev.target.closest('.item');if(!art)return;
+  const e=S.vault.entries.find(x=>x.id===art.dataset.id);if(!e)return;
+  const b=ev.target.closest('button[data-a]');
+  if(b&&b.dataset.a==='copy')return copyText(e.password,'Senha');
+  if(b&&b.dataset.a==='show'){const p=art.querySelector('.pwv');const shown=p.dataset.on==='1';p.textContent=shown?'••••••••••':e.password;p.dataset.on=shown?'':'1';return;}
+  openEditor(e.id);
+});
+$('#addBtn').onclick=()=>openEditor(null);
+$('#lockNow').onclick=lock;
+$('#setBtn').onclick=openSettings;
+$('#syncPill').onclick=()=>{if(cfg.driveConnected||cfg.clientId)syncNow(true);else openSettings();};
+
+/* ================= Painel ================= */
+function openSheet(html){$('#sheetBody').innerHTML=html;$('#sheet').classList.remove('hidden');$('#sheetBody').scrollTop=0;}
+function closeSheet(){$('#sheet').classList.add('hidden');$('#sheetBody').innerHTML='';}
+$('#sheet').addEventListener('click',ev=>{if(ev.target.id==='sheet'||ev.target.closest('[data-close]'))closeSheet();});
+
+/* ================= Editor ================= */
+function openEditor(id){
+  const e=id?S.vault.entries.find(x=>x.id===id):null,g=cfg.gen;
+  const pw=e?e.password:generate(g);
+  const hist=(e&&e.history)||[];
+  openSheet(`
+    <div class="sh-head"><h2>${e?'Editar senha':'Nova senha'}</h2><button class="icon" data-close aria-label="Fechar">${ICON.x}</button></div>
+    <label>Site, aplicativo ou serviço
+      <input id="eName" value="${esc(e?e.name:'')}" placeholder="Ex.: gmail.com, Banco, Wi-Fi de casa" autocomplete="off"></label>
+    <label>Usuário / e-mail <span class="muted">(opcional)</span>
+      <div class="row"><input id="eLogin" value="${esc(e?e.login:'')}" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="icon" id="cpLogin" aria-label="Copiar usuário">${ICON.copy}</button></div></label>
+    <label>Senha
+      <div class="row"><input id="ePw" class="mono" value="${esc(pw)}" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="icon" id="regen" aria-label="Gerar outra">${ICON.regen}</button>
+      <button class="icon" id="cpPw" aria-label="Copiar senha">${ICON.copy}</button></div></label>
+    <div class="meter"><span id="mBar"></span></div><div class="mtxt" id="mTxt"></div>
+    <details ${e?'':'open'}><summary>Opções do gerador</summary>
+      <div class="opts">
+        <div class="len"><span>Tamanho</span><input type="range" id="gLen" min="8" max="64" value="${g.len}"><b id="gLenV">${g.len}</b></div>
+        <label class="chk"><input type="checkbox" id="gUpper" ${g.upper?'checked':''}>Maiúsculas</label>
+        <label class="chk"><input type="checkbox" id="gLower" ${g.lower?'checked':''}>Minúsculas</label>
+        <label class="chk"><input type="checkbox" id="gDigits" ${g.digits?'checked':''}>Números</label>
+        <label class="chk"><input type="checkbox" id="gSymbols" ${g.symbols?'checked':''}>Símbolos</label>
+        <label class="chk" style="grid-column:1/-1"><input type="checkbox" id="gNoAmb" ${g.noAmb?'checked':''}>Evitar caracteres parecidos (I, l, 1, O, 0)</label>
+      </div>
+    </details>
+    <label>Observações <span class="muted">(opcional)</span>
+      <textarea id="eNotes" rows="2">${esc(e?e.notes:'')}</textarea></label>
+    ${hist.length?`<details><summary>Senhas anteriores (${hist.length})</summary><div class="hist">${hist.map(h=>`<div><span class="mono">${esc(h.pw)}</span><span class="muted">${hhmm(h.at)}</span></div>`).join('')}</div></details>`:''}
+    ${e?`<p class="muted" style="font-size:.8rem;margin:12px 0 0">Atualizada em ${hhmm(e.updatedAt)}</p>`:''}
+    <div class="sh-actions">
+      ${e?'<button class="btn danger" id="eDel">Excluir</button>':'<button class="btn" data-close>Cancelar</button>'}
+      <button class="btn primary" id="eSave">${e?'Salvar':'Salvar e copiar'}</button>
+    </div>`);
+  const upd=()=>{const s=strength($('#ePw').value);$('#mBar').style.width=s.pct+'%';$('#mBar').style.background=s.color;$('#mTxt').textContent=`${s.label} · ~${s.bits} bits · ${$('#ePw').value.length} caracteres`;};
+  const readGen=()=>{cfg.gen={len:+$('#gLen').value,upper:$('#gUpper').checked,lower:$('#gLower').checked,digits:$('#gDigits').checked,symbols:$('#gSymbols').checked,noAmb:$('#gNoAmb').checked};saveCfg();};
+  const regen=()=>{readGen();$('#ePw').value=generate(cfg.gen);upd();};
+  upd();
+  $('#ePw').addEventListener('input',upd);
+  $('#gLen').addEventListener('input',()=>{$('#gLenV').textContent=$('#gLen').value;regen();});
+  ['gUpper','gLower','gDigits','gSymbols','gNoAmb'].forEach(i=>$('#'+i).addEventListener('change',regen));
+  $('#regen').onclick=regen;
+  $('#cpPw').onclick=()=>copyText($('#ePw').value,'Senha');
+  $('#cpLogin').onclick=()=>{const v=$('#eLogin').value;if(v)copyText(v,'Usuário');};
+  if(!e)setTimeout(()=>$('#eName').focus(),50);
+  $('#eSave').onclick=async()=>{
+    const name=$('#eName').value.trim(),login=$('#eLogin').value.trim(),password=$('#ePw').value,notes=$('#eNotes').value.trim();
+    if(!name){toast('Informe o nome do site ou serviço',true);return $('#eName').focus();}
+    if(!password){toast('A senha não pode ficar vazia',true);return;}
+    const now=Date.now();
+    if(e){
+      if(e.password!==password){e.history=[{pw:e.password,at:e.updatedAt||now},...(e.history||[])].slice(0,5);}
+      Object.assign(e,{name,login,password,notes,updatedAt:now});
+    }else{
+      S.vault.entries.push({id:uid(),name,login,password,notes,history:[],createdAt:now,updatedAt:now});
+      copyText(password,'Senha');
+    }
+    closeSheet();render();await persist();if(e)toast('Salvo');
+  };
+  if(e)$('#eDel').onclick=async()=>{
+    if(!confirm(`Excluir a senha de "${e.name}"? Isso não pode ser desfeito.`))return;
+    const i=S.vault.entries.indexOf(e);S.vault.entries[i]={id:e.id,deleted:true,updatedAt:Date.now()};
+    closeSheet();render();await persist();toast('Excluída');
+  };
+}
+
+/* ================= Google Drive ================= */
+let accessToken=null,tokenExp=0,syncing=false,syncTimer=null;
+const tokenValid=()=>accessToken&&Date.now()<tokenExp-60000;
+function loadGis(){
+  return new Promise((res,rej)=>{
+    if(window.google&&google.accounts&&google.accounts.oauth2)return res();
+    let s=document.getElementById('gis');
+    if(!s){s=document.createElement('script');s.id='gis';s.src='https://accounts.google.com/gsi/client';s.async=true;document.head.appendChild(s);}
+    s.addEventListener('load',()=>res());
+    s.addEventListener('error',()=>rej(new Error('Não foi possível carregar o Google. Verifique a internet.')));
+  });
+}
+async function getToken(){
+  if(tokenValid())return accessToken;
+  if(!cfg.clientId)throw new Error('Informe o Client ID do Google nas configurações.');
+  await loadGis();
+  return new Promise((res,rej)=>{
+    const tc=google.accounts.oauth2.initTokenClient({
+      client_id:cfg.clientId,
+      scope:'https://www.googleapis.com/auth/drive.appdata',
+      callback:r=>{
+        if(r.error)return rej(new Error('Google: '+r.error));
+        accessToken=r.access_token;tokenExp=Date.now()+(r.expires_in||3600)*1000;
+        cfg.driveConnected=true;saveCfg();res(accessToken);
+      },
+      error_callback:e=>rej(new Error(e&&e.type==='popup_closed'?'A janela do Google foi fechada.':e&&e.type==='popup_failed_to_open'?'O navegador bloqueou a janela do Google. Permita pop-ups e tente de novo.':'Falha na autenticação com o Google.'))
+    });
+    tc.requestAccessToken({prompt:''});
+  });
+}
+async function gfetch(url,opt={}){
+  const t=await getToken();
+  const r=await fetch(url,{...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+t}});
+  if(r.status===401){accessToken=null;throw new Error('A sessão do Google expirou. Toque em sincronizar.');}
+  if(!r.ok){let m='';try{m=(await r.json()).error.message;}catch{}throw new Error('Google Drive: '+(m||r.status));}
+  return r;
+}
+async function driveFind(){
+  const q=encodeURIComponent(`name='${FNAME}' and trashed=false`);
+  const r=await gfetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,modifiedTime)&orderBy=modifiedTime desc`);
+  const j=await r.json();return (j.files&&j.files[0])||null;
+}
+async function driveDownload(id){const r=await gfetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`);return r.json();}
+async function driveUpload(blob,id){
+  const body=JSON.stringify(blob);
+  if(id){await gfetch(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':'application/json'},body});return id;}
+  const meta={name:FNAME,parents:['appDataFolder'],mimeType:'application/json'},bd='cofre'+uid().replace(/-/g,'');
+  const mp=`--${bd}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${bd}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${bd}--`;
+  const r=await gfetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+bd},body:mp});
+  return (await r.json()).id;
+}
+function setSync(state,txt){const p=$('#syncPill');p.dataset.s=state;$('#syncTxt').textContent=txt;}
+function scheduleSync(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncNow(false),1200);}
+async function decryptForeign(blob,msg){
+  if(blob.salt===toB64(S.salt)&&(blob.iter||ITER)===S.iter){try{return await decryptBlob(blob,S.key);}catch{}}
+  for(let i=0;i<3;i++){
+    const pw=await askPassword(i?'Senha incorreta. '+msg:msg);if(pw===null)return null;
+    try{const k=await deriveKey(pw,fromB64(blob.salt),blob.iter||ITER);return await decryptBlob(blob,k);}catch{}
+  }
+  throw new Error('Não foi possível abrir o cofre com a senha informada.');
+}
+async function syncNow(manual){
+  if(!S.key||syncing)return;
+  if(!cfg.clientId){if(manual){toast('Configure o Google Drive primeiro');openSettings();}return;}
+  if(!manual&&!tokenValid()){setSync('warn','Toque para sincronizar com o Drive');return;}
+  syncing=true;setSync('sync','Sincronizando…');
+  try{
+    const f=await driveFind();
+    if(f){
+      const remote=await driveDownload(f.id);
+      if(!isBlob(remote))throw new Error('O arquivo na nuvem não é um cofre válido.');
+      const rv=await decryptForeign(remote,'O cofre na nuvem está com outra senha mestra. Digite a senha mestra usada nele:');
+      if(!rv){setSync('warn','Sincronização cancelada');return;}
+      S.vault.entries=purge(merge(S.vault.entries,rv.entries||[]));
+      await saveLocal();render();
+    }
+    await driveUpload(JSON.parse(lsGet(VK)),f&&f.id);
+    cfg.lastSync=Date.now();cfg.driveConnected=true;saveCfg();
+    setSync('ok','Sincronizado com o Drive · '+hhmm(cfg.lastSync));
+    if(manual)toast('Sincronizado com o Google Drive');
+    refreshDriveStatus();
+  }catch(e){setSync('err','Erro na sincronização — toque para tentar');toast(e.message,true);}
+  finally{syncing=false;}
+}
+function askPassword(msg){
+  return new Promise(res=>{
+    $('#askMsg').textContent=msg;$('#askPw').value='';$('#ask').classList.remove('hidden');setTimeout(()=>$('#askPw').focus(),50);
+    const done=v=>{$('#ask').classList.add('hidden');res(v);};
+    $('#askOk').onclick=()=>done($('#askPw').value);
+    $('#askCancel').onclick=()=>done(null);
+    $('#askPw').onkeydown=e=>{if(e.key==='Enter')done($('#askPw').value);};
+  });
+}
+
+/* ================= Backup ================= */
+function pickFile(){
+  return new Promise(res=>{
+    const i=document.createElement('input');i.type='file';i.accept='.json,application/json';
+    i.onchange=async()=>{const f=i.files[0];if(!f)return res(null);try{res(JSON.parse(await f.text()));}catch{res(undefined);}};
+    i.click();
+  });
+}
+function exportBackup(){
+  const raw=lsGet(VK);if(!raw)return;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([raw],{type:'application/json'}));
+  a.download='cofre-senhas-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  toast('Backup criptografado baixado');
+}
+async function importBackup(){
+  const b=await pickFile();if(b===null)return;
+  if(!isBlob(b))return toast('Arquivo de backup inválido',true);
+  try{
+    const v=await decryptForeign(b,'Digite a senha mestra usada nesse backup:');if(!v)return;
+    const before=live().length;
+    S.vault.entries=purge(merge(S.vault.entries,v.entries||[]));
+    render();await persist();toast(`Backup importado (${live().length-before} nova${live().length-before===1?'':'s'})`);
+  }catch(e){toast(e.message,true);}
+}
+
+/* ================= Configurações ================= */
+function refreshDriveStatus(){
+  const el=document.getElementById('dStatus');if(!el)return;
+  el.textContent=cfg.driveConnected?(cfg.lastSync?'Conectado · última sincronização '+hhmm(cfg.lastSync):'Conectado'):'Não conectado';
+  const c=document.getElementById('dConnect');if(c)c.textContent=cfg.driveConnected?'Sincronizar agora':'Conectar ao Google Drive';
+  const d=document.getElementById('dDisc');if(d)d.classList.toggle('hidden',!cfg.driveConnected);
+}
+function openSettings(){
+  openSheet(`
+    <div class="sh-head"><h2>Configurações</h2><button class="icon" data-close aria-label="Fechar">${ICON.x}</button></div>
+
+    <div class="sec" style="border:0;margin-top:4px">
+      <h3>Google Drive</h3>
+      <p class="help" style="margin:0">As senhas vão para a nuvem <b>já criptografadas</b>, numa pasta oculta do app no seu Drive. Nem o Google consegue ler.</p>
+      <label>Client ID do Google
+        <input id="sCid" value="${esc(cfg.clientId)}" placeholder="xxxx.apps.googleusercontent.com" autocapitalize="off" spellcheck="false"></label>
+      <p class="help" id="dStatus"></p>
+      <button class="btn primary" id="dConnect"></button>
+      <label class="chk" style="margin-top:12px"><input type="checkbox" id="sAuto" ${cfg.autoSync?'checked':''}>Sincronizar automaticamente ao salvar</label>
+      <button class="link hidden" id="dDisc" style="padding-left:0">Desconectar do Google Drive</button>
+      <details><summary>Como obter o Client ID (uma vez só)</summary>
+        <div class="help"><ol>
+          <li>Acesse <b>console.cloud.google.com</b> e crie um projeto.</li>
+          <li>Em <b>APIs e serviços › Biblioteca</b>, ative a <b>Google Drive API</b>.</li>
+          <li>Em <b>Tela de consentimento OAuth</b>, escolha <b>Externo</b>, preencha o nome do app e adicione seu e-mail em <b>Usuários de teste</b>.</li>
+          <li>Em <b>Credenciais › Criar credenciais › ID do cliente OAuth</b>, tipo <b>Aplicativo da Web</b>.</li>
+          <li>Em <b>Origens JavaScript autorizadas</b>, coloque o endereço onde este app está aberto:<br><code>${esc(location.origin)}</code></li>
+          <li>Copie o <b>ID do cliente</b> e cole no campo acima.</li>
+        </ol>O Google exige que o app esteja num endereço <b>https://</b> (ex.: GitHub Pages). Aberto direto como arquivo, só a parte local funciona.</div>
+      </details>
+    </div>
+
+    <div class="sec">
+      <h3>Backup manual</h3>
+      <p class="help" style="margin:0">Arquivo criptografado — só abre com a senha mestra.</p>
+      <div class="grid2"><button class="btn" id="bExp">Exportar</button><button class="btn" id="bImp">Importar</button></div>
+    </div>
+
+    <div class="sec">
+      <h3>Segurança</h3>
+      <label>Bloquear automaticamente após
+        <select id="sLock">${[1,2,5,10,15,30].map(m=>`<option value="${m}" ${cfg.lockMin===m?'selected':''}>${m} minuto${m>1?'s':''} sem uso</option>`).join('')}</select></label>
+      <details><summary>Alterar senha mestra</summary>
+        <input type="password" id="cCur" placeholder="Senha mestra atual" style="margin-top:4px">
+        <input type="password" id="cN1" placeholder="Nova senha mestra (mín. 8)" style="margin-top:8px">
+        <input type="password" id="cN2" placeholder="Confirme a nova senha" style="margin-top:8px">
+        <button class="btn primary" id="cGo" style="margin:10px 0 12px">Alterar senha mestra</button>
+      </details>
+    </div>
+
+    <div class="sec">
+      <h3>Apagar dados deste aparelho</h3>
+      <p class="help" style="margin:0">Remove o cofre só deste celular. O que estiver no Drive continua lá.</p>
+      <button class="btn danger" id="wipe" style="margin-top:10px">Apagar cofre do aparelho</button>
+    </div>`);
+  refreshDriveStatus();
+  $('#sCid').addEventListener('change',()=>{const v=$('#sCid').value.trim();if(v!==cfg.clientId){cfg.clientId=v;accessToken=null;cfg.driveConnected=false;saveCfg();refreshDriveStatus();}if(v)loadGis().catch(()=>{});});
+  if(cfg.clientId)loadGis().catch(()=>{});
+  $('#dConnect').onclick=()=>{cfg.clientId=$('#sCid').value.trim();saveCfg();syncNow(true);};
+  $('#sAuto').onchange=()=>{cfg.autoSync=$('#sAuto').checked;saveCfg();};
+  $('#dDisc').onclick=()=>{
+    if(accessToken&&window.google)try{google.accounts.oauth2.revoke(accessToken,()=>{});}catch{}
+    accessToken=null;cfg.driveConnected=false;cfg.lastSync=0;saveCfg();refreshDriveStatus();setSync('off','Salvo só neste aparelho');toast('Desconectado do Google Drive');
+  };
+  $('#bExp').onclick=exportBackup;
+  $('#bImp').onclick=importBackup;
+  $('#sLock').onchange=()=>{cfg.lockMin=+$('#sLock').value;saveCfg();};
+  $('#cGo').onclick=async()=>{
+    const cur=$('#cCur').value,n1=$('#cN1').value,n2=$('#cN2').value;
+    if(n1.length<8)return toast('A nova senha precisa ter pelo menos 8 caracteres',true);
+    if(n1!==n2)return toast('As novas senhas não conferem',true);
+    const btn=$('#cGo');btn.disabled=true;btn.textContent='Alterando…';
+    try{
+      const k=await deriveKey(cur,S.salt,S.iter);
+      try{await decryptBlob(JSON.parse(lsGet(VK)),k);}catch{throw new Error('Senha mestra atual incorreta');}
+      if(cfg.driveConnected&&tokenValid())await syncNow(false);
+      S.salt=crypto.getRandomValues(new Uint8Array(16));S.iter=ITER;S.key=await deriveKey(n1,S.salt,S.iter);
+      await saveLocal();
+      if(cfg.driveConnected&&tokenValid()){const f=await driveFind();await driveUpload(JSON.parse(lsGet(VK)),f&&f.id);cfg.lastSync=Date.now();saveCfg();setSync('ok','Sincronizado com o Drive · '+hhmm(cfg.lastSync));}
+      closeSheet();toast('Senha mestra alterada');
+    }catch(e){toast(e.message,true);btn.disabled=false;btn.textContent='Alterar senha mestra';}
+  };
+  $('#wipe').onclick=()=>{
+    if(!confirm('Apagar o cofre deste aparelho? Sem backup ou Drive, as senhas serão perdidas.'))return;
+    if(prompt('Para confirmar, digite APAGAR')!=='APAGAR')return;
+    lsDel(VK);cfg.driveConnected=false;cfg.lastSync=0;saveCfg();accessToken=null;lock();
+  };
+}
+
+/* ================= Início ================= */
+if(!window.crypto||!crypto.subtle){
+  document.body.innerHTML='<p style="padding:24px">Este navegador não oferece criptografia segura neste endereço. Abra o app por um endereço https:// ou atualize o navegador.</p>';
+}else showLock();
+</script>
+</body>
+</html>
